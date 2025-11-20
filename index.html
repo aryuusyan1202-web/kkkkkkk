@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Gym Reservation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Noto Sans JP -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f3f4f6; /* 薄いグレーの背景 */
+            color: #111827;
+        }
+
+        /* カレンダー入力のカスタマイズ */
+        input[type="date"] {
+            appearance: none;
+            -webkit-appearance: none;
+            color: #111827;
+            background: transparent;
+            border: none;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 1rem;
+            width: 100%;
+            cursor: pointer;
+        }
+        
+        /* 時間枠のスタイル */
+        .time-slot {
+            transition: all 0.2s ease;
+        }
+        
+        /* 空き枠（デフォルト） */
+        .slot-available {
+            background-color: #fff;
+            border: 1px solid #3b82f6; /* Blue-500 */
+            color: #3b82f6;
+        }
+        .slot-available:hover {
+            background-color: #eff6ff; /* Blue-50 */
+        }
+        /* 選択状態 */
+        .slot-selected {
+            background-color: #111827 !important; /* Black */
+            border-color: #111827 !important;
+            color: #fff !important;
+        }
+        
+        /* 予約済み枠 */
+        .slot-booked {
+            background-color: #f3f4f6; /* Gray-100 */
+            border: 1px solid #f3f4f6;
+            color: #9ca3af; /* Gray-400 */
+            cursor: not-allowed;
+        }
+
+        /* フェードインアニメーション */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+            opacity: 0;
+            transform: translateY(5px);
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* カスタムスクロールバー */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-6">
+
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden min-h-[80vh] flex flex-col">
+        
+        <!-- Header -->
+        <header class="text-center pt-8 pb-4 px-6 bg-white">
+            <h1 class="text-xl font-bold text-gray-800 mb-1">パーソナルジム予約</h1>
+            <p class="text-xs text-gray-500">ご希望の日時を選択してください</p>
+        </header>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar px-6 pb-8">
+            
+            <!-- Step 1: 店舗と日付 -->
+            <div id="step-1" class="space-y-6">
+                
+                <!-- 店舗選択 (今回はシンプルにドロップダウン) -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                    <label class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        店舗を選択
+                    </label>
+                    <select id="storeSelect" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500">
+                        <option value="" disabled selected>店舗を選んでください</option>
+                        <option value="ginza">銀座店</option>
+                        <option value="roppongi">六本木店</option>
+                        <option value="omotesando">表参道店</option>
+                    </select>
+                </div>
+
+                <!-- 日付選択 -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                    <label class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        日付を選択
+                    </label>
+                    <div class="relative">
+                        <input type="date" id="dateInput" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all">
+                    </div>
+                </div>
+
+                <button id="searchBtn" class="w-full bg-black text-white font-bold py-4 rounded-xl shadow-lg hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                    空き状況を確認する
+                </button>
+            </div>
+
+            <!-- Step 2: 時間選択 -->
+            <div id="step-2" class="hidden space-y-6 fade-in">
+                
+                <!-- 選択中の日付表示 -->
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <div class="flex items-center gap-2 text-sm font-bold text-gray-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            時間を選択
+                        </div>
+                        <p id="displayDate" class="text-sm text-gray-500 mt-1 ml-7">2025年11月20日(木)</p>
+                    </div>
+                    <button id="backBtn" class="text-xs text-blue-600 font-medium hover:underline">
+                        変更する
+                    </button>
+                </div>
+
+                <!-- ローディング -->
+                <div id="loadingSlots" class="hidden text-center py-8">
+                    <div class="inline-block w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-xs text-gray-400 mt-2">空き状況を確認中...</p>
+                </div>
+
+                <!-- スロットリスト -->
+                <div id="slotsContainer" class="space-y-3">
+                    <!-- JSで生成 -->
+                </div>
+
+                <!-- 名前入力フォーム -->
+                <div id="nameSection" class="hidden bg-white border border-gray-200 rounded-2xl p-5 shadow-sm mt-6 fade-in">
+                    <label class="block text-xs font-bold text-gray-500 mb-2">お名前（カタカナ）</label>
+                    <input type="text" id="nameInput" placeholder="ヤマダ タロウ" class="w-full bg-gray-50 border-b border-gray-300 px-2 py-2 text-base outline-none focus:border-blue-500 transition-colors rounded-t-md">
+                    <p id="nameError" class="text-xs text-red-500 mt-2 hidden">カタカナで入力してください</p>
+
+                    <button id="confirmBtn" class="w-full mt-4 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-blue-700 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                        予約を確定する
+                    </button>
+                </div>
+
+                <!-- 注意書き -->
+                <div class="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 leading-relaxed space-y-1 border border-gray-100">
+                    <p class="font-bold text-gray-700 mb-1">ご予約について</p>
+                    <p>・予約は当日から受け付けております</p>
+                    <p>・キャンセルは前日までにお願いいたします</p>
+                    <p>・ご不明な点がございましたらお気軽にお問い合わせください</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 完了モーダル -->
+    <div id="successModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden backdrop-blur-sm transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-2xl p-8 max-w-xs w-full text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modalContent">
+            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-lg font-bold text-gray-800 mb-2">予約完了</h2>
+            <p class="text-sm text-gray-500 mb-6">ご予約ありがとうございます。<br>当日お待ちしております。</p>
+            <button onclick="location.reload()" class="w-full py-3 bg-gray-900 text-white font-bold rounded-xl text-sm hover:bg-black transition-colors">
+                閉じる
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 設定エリア
+        // ==========================================
+        
+        // ★★★ 本番時は false にしてください ★★★
+        const USE_DEMO_MODE = true; 
+
+        // n8nのWebhook URL
+        const N8N_GET_SLOTS_URL = "YOUR_N8N_WEBHOOK_GET_URL";
+        const N8N_BOOK_SLOT_URL = "YOUR_N8N_WEBHOOK_POST_URL";
+
+        // ==========================================
+        // ロジック
+        // ==========================================
+
+        const storeSelect = document.getElementById('storeSelect');
+        const dateInput = document.getElementById('dateInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const slotsContainer = document.getElementById('slotsContainer');
+        const loadingSlots = document.getElementById('loadingSlots');
+        const displayDate = document.getElementById('displayDate');
+        const nameSection = document.getElementById('nameSection');
+        const nameInput = document.getElementById('nameInput');
+        const nameError = document.getElementById('nameError');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const backBtn = document.getElementById('backBtn');
+        const successModal = document.getElementById('successModal');
+        const modalContent = document.getElementById('modalContent');
+
+        let state = {
+            store: '',
+            date: '',
+            selectedTime: '',
+            name: ''
+        };
+
+        // 今日の日付をセット
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+        dateInput.value = today;
+
+        // Step 1 バリデーション
+        function checkStep1() {
+            if (storeSelect.value && dateInput.value) {
+                searchBtn.disabled = false;
+            } else {
+                searchBtn.disabled = true;
+            }
+        }
+        storeSelect.addEventListener('change', checkStep1);
+        dateInput.addEventListener('change', checkStep1);
+
+        // 検索ボタンクリック
+        searchBtn.addEventListener('click', async () => {
+            state.store = storeSelect.value;
+            state.date = dateInput.value;
+
+            // 日付表示の更新
+            const d = new Date(state.date);
+            const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+            displayDate.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${dayOfWeek})`;
+
+            // UI切り替え
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+            loadingSlots.classList.remove('hidden');
+            slotsContainer.innerHTML = ''; 
+            nameSection.classList.add('hidden'); // 名前欄リセット
+
+            try {
+                // 1. 営業時間内の全スロット生成 (9:00 - 22:00)
+                const allSlots = generateAllSlots(9, 22);
+                
+                // 2. 空きスロット取得 (API or Demo)
+                const availableSlots = await fetchAvailableSlots(state.store, state.date);
+                
+                // 3. 結合して描画
+                renderSlotList(allSlots, availableSlots);
+
+            } catch (error) {
+                alert('データの取得に失敗しました');
+                backBtn.click();
+            } finally {
+                loadingSlots.classList.add('hidden');
+            }
+        });
+
+        // 戻るボタン
+        backBtn.addEventListener('click', () => {
+            step2.classList.add('hidden');
+            step1.classList.remove('hidden');
+            state.selectedTime = '';
+            nameInput.value = '';
+            nameSection.classList.add('hidden');
+            confirmBtn.disabled = true;
+        });
+
+        // 9:00〜22:00の間の1時間ごとのスロット文字列を生成
+        function generateAllSlots(startHour, endHour) {
+            const slots = [];
+            for (let h = startHour; h < endHour; h++) {
+                // "09:00", "10:00" ...
+                const start = `${h.toString().padStart(2, '0')}:00`;
+                const end = `${(h+1).toString().padStart(2, '0')}:00`;
+                slots.push({ start, end, label: `${start} - ${end}` });
+            }
+            return slots;
+        }
+
+        // 空き枠データ取得
+        async function fetchAvailableSlots(store, date) {
+            if (USE_DEMO_MODE) {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        // デモ: 10, 13, 14, 16時を開始時間とするスロットを「空き」とする
+                        // 実際はn8nが "09:00" 等の開始時間リストを返すと仮定
+                        resolve(["09:00", "11:00", "13:00", "14:00", "16:00", "19:00"]);
+                    }, 800);
+                });
+            } else {
+                // 本番: n8nへFetch
+                // n8nは { slots: ["09:00", "10:00", ...] } のように開始時間を返す想定
+                const url = `${N8N_GET_SLOTS_URL}?store=${store}&date=${date}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                return data.slots; 
+            }
+        }
+
+        // リスト描画
+        function renderSlotList(allSlots, availableStarts) {
+            // availableStarts: ["09:00", "10:00"] などの文字列配列
+            
+            allSlots.forEach(slot => {
+                const isAvailable = availableStarts.includes(slot.start);
+                
+                // ボタン作成
+                const btn = document.createElement('button');
+                btn.className = `w-full flex items-center justify-between px-4 py-4 rounded-xl border text-sm font-bold time-slot ${
+                    isAvailable ? 'slot-available' : 'slot-booked'
+                }`;
+                btn.disabled = !isAvailable;
+
+                // 左側：時間
+                const timeSpan = document.createElement('span');
+                timeSpan.textContent = slot.label;
+                
+                // 右側：ステータス
+                const statusSpan = document.createElement('span');
+                statusSpan.className = "text-xs font-normal";
+                statusSpan.textContent = isAvailable ? "空き" : "予約済み";
+                if(isAvailable) statusSpan.classList.add("text-blue-600", "font-bold");
+
+                btn.appendChild(timeSpan);
+                btn.appendChild(statusSpan);
+
+                if (isAvailable) {
+                    btn.onclick = () => selectSlot(btn, slot.start);
+                }
+
+                slotsContainer.appendChild(btn);
+            });
+        }
+
+        function selectSlot(btn, startTime) {
+            // 既存の選択解除
+            document.querySelectorAll('.slot-selected').forEach(el => {
+                el.classList.remove('slot-selected');
+                // テキスト色を青に戻す
+                const statusText = el.querySelector('span:last-child');
+                if(statusText) statusText.classList.add('text-blue-600');
+            });
+
+            // 新しい選択
+            btn.classList.add('slot-selected');
+            // テキスト色を白にする（CSSで指定済みだが念の為JSでもクラス操作不要にする）
+            const statusText = btn.querySelector('span:last-child');
+            if(statusText) statusText.classList.remove('text-blue-600');
+
+            state.selectedTime = startTime;
+            
+            // 名前入力エリア表示
+            nameSection.classList.remove('hidden');
+            setTimeout(() => {
+                nameSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        // カタカナバリデーション
+        nameInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            state.name = val;
+
+            // 全角カタカナとスペースのみ許可
+            const isKatakana = /^[\u30A0-\u30FF\u3000\s]+$/.test(val);
+
+            if (val !== '' && !isKatakana) {
+                nameError.classList.remove('hidden');
+                confirmBtn.disabled = true;
+            } else if (val !== '') {
+                nameError.classList.add('hidden');
+                confirmBtn.disabled = false;
+            } else {
+                nameError.classList.add('hidden');
+                confirmBtn.disabled = true;
+            }
+        });
+
+        // 予約確定
+        confirmBtn.addEventListener('click', async () => {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = "処理中...";
+
+            try {
+                if (!USE_DEMO_MODE) {
+                    await fetch(N8N_BOOK_SLOT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(state)
+                    });
+                } else {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+
+                // モーダル表示
+                successModal.classList.remove('hidden');
+                setTimeout(() => {
+                    successModal.classList.remove('opacity-0');
+                    modalContent.classList.remove('scale-95');
+                    modalContent.classList.add('scale-100');
+                }, 10);
+
+            } catch (error) {
+                alert('予約処理に失敗しました');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = "予約を確定する";
+            }
+        });
+
+    </script>
+</body>
+</html>
